@@ -7,11 +7,6 @@ IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTe
 IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
 SELECT_COUNTIES = %w{Illinois Cook Lake}.freeze
 SELECT_HEADERS = %w{confirmed_cases total_tested deaths}.freeze
-DEFAULT_TABLE_ATTRIBUTES = {
-  table: {style: 'border: 2px solid black;border-collapse: collapse;'},
-  th: {style: 'border: thin solid black;'},
-  td: {style: 'border: thin solid black;'},
-}.freeze
 
 get '/' do
   hospital_data = HTTParty.get(IDPH_COVID_HOSPITAL_DATA).parsed_response
@@ -35,20 +30,32 @@ get '/' do
     row.reduce(&:merge!)
   end
 
-  region_10_table = Thamble.table(region_10_hospitalization, DEFAULT_TABLE_ATTRIBUTES)
-  state_hospitalization_table = Thamble.table(state_hospitalization, DEFAULT_TABLE_ATTRIBUTES)
+  region_10_table = Thamble.table(region_10_hospitalization)
+  state_hospitalization_table = Thamble.table(state_hospitalization)
   state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).reverse, {
     headers: state_hospitalization_historic.first.keys,
-    **DEFAULT_TABLE_ATTRIBUTES,
-    table: {style: 'border: 2px solid black;border-collapse: collapse;', class: :collapsible},
+    table: {class: :collapsible},
   })
   test_results_table = Thamble.table(test_results.map(&:values), {
     headers: test_results.first.keys,
-    **DEFAULT_TABLE_ATTRIBUTES,
-    table: {style: 'border: 2px solid black;border-collapse: collapse;', class: :collapsible},
+    table: {class: :collapsible},
   })
 
   <<~HTML
+    <style>
+      tr:nth-child(odd) {
+        background: #DDD
+      }
+      table {
+        border: 2px solid black;
+        border-collapse: collapse
+      }
+
+      th, td {
+        border: thin solid black;
+      }
+    </style>
+
     <h1>Region 10</h1>
     #{region_10_table}
 
