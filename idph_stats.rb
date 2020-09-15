@@ -8,18 +8,20 @@ SELECT_COUNTIES = %w{Illinois Cook Lake}.freeze
 
 get '/' do
   response = HTTParty.get(IDPH_DATA_URL, headers: {'Content-Type' => 'application/json'}).parsed_response
-  result = response['historical_county']['values'].map do |date|
+  result = response['historical_county']['values'].each_with_object({}) do |date, accumulator|
     counties = date['values'].select do |county|
       SELECT_COUNTIES.include? county['County']
     end
 
-    counties.map do |county|
+    counties = counties.map do |county|
       county_name = county.delete('County').downcase
       county.reject! {|k,_| k == 'lat' || k == 'lon'}
       county.transform_keys! {|k| "#{county_name}_#{k}"}
       county
-    end.unshift('date' => date['testDate'])
-  end.map {_1.inject(&:merge)}
+    end.inject(&:merge!)
+
+    accumulator[date['testDate']] = counties
+  end
 
   json result
 end
