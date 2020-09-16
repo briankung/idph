@@ -7,14 +7,16 @@ IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTe
 IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
 SELECT_COUNTIES = %w{Illinois Cook Lake}.freeze
 SELECT_HEADERS = %w{confirmed_cases total_tested deaths}.freeze
+SELECT_HOSPITALIZATION_DATA = %w{ICUCapacity ICUCovidPatients VentCapacity VentCovidPatients}.freeze
+SELECT_STATEWIDE_HOSPITALIZATION_DATA = %w{ICUBeds ICUInUseBedsCOVID VentilatorCapacity VentilatorInUseCOVID}.freeze
 
 get '/' do
   hospital_data = HTTParty.get(IDPH_COVID_HOSPITAL_DATA).parsed_response
   test_data = HTTParty.get(IDPH_COVID_TEST_DATA).parsed_response
 
   region_10_hospitalization = hospital_data['regionValues'].find {|region| region['id'] == 10}.reject! {|k,_| k =~ /^(region|id)$/}
-  state_hospitalization = hospital_data['statewideValues']
-  state_hospitalization_historic = hospital_data['HospitalUtilizationResults']
+  state_hospitalization = hospital_data['statewideValues'].slice(*SELECT_HOSPITALIZATION_DATA)
+  state_hospitalization_historic = hospital_data['HospitalUtilizationResults'].map {_1.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
 
   test_results = test_data['historical_county']['values'].map do |date|
     row = date['values'].filter_map do |county|
@@ -56,17 +58,18 @@ get '/' do
       }
     </style>
 
-    <h1>Region 10</h1>
+    <h1>Test Results Data</h1>
+    #{test_results_table}
+
+    <h1>Hospitalization Data</h1>
+    <h2>Region 10</h2>
     #{region_10_table}
 
-    <h1>Statewide Hospitalization Data</h1>
+    <h2>Statewide Hospitalization Data</h2>
     #{state_hospitalization_table}
 
-    <h1>Historic Statewide Hospitalization Data</h1>
+    <h2>Historic Statewide Hospitalization Data</h2>
     #{state_hospitalization_historic_table}
-
-    <h1>Historic Testing Data</h1>
-    #{test_results_table}
 
     <script type="text/javascript">
       const toggleDisplay = (el) => {
