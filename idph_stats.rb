@@ -5,8 +5,8 @@ require 'thamble'
 
 IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
 IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
-SELECT_COUNTIES = %w{Illinois Cook Lake}.freeze
-SELECT_HEADERS = %w{confirmed_cases total_tested deaths}.freeze
+SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
+SELECT_HEADERS = %w{confirmed_cases deaths total_tested}.freeze
 SELECT_HOSPITALIZATION_DATA = %w{ICUCapacity ICUCovidPatients VentCapacity VentCovidPatients}.freeze
 SELECT_STATEWIDE_HOSPITALIZATION_DATA = %w{reportDate ICUBeds ICUInUseBedsCOVID VentilatorCapacity VentilatorInUseCOVID}.freeze
 
@@ -22,7 +22,7 @@ get '/' do
     row = date['values'].filter_map do |county|
       next unless SELECT_COUNTIES.include? county['County']
       county_name = county.delete('County').downcase
-      county.select! {|k,_| SELECT_HEADERS.include?(k)}
+      county = county.slice(*SELECT_HEADERS)
       county.transform_keys! {|k| "#{county_name}_#{k}"}
       county
     end
