@@ -19,18 +19,14 @@ get '/' do
   state_hospitalization_historic = hospital_data['HospitalUtilizationResults'].map {_1.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
 
   test_results = test_data['historical_county']['values'].map do |date|
-    row = date['values'].filter_map do |county|
+    date['values'].filter_map do |county|
       next unless SELECT_COUNTIES.include? county['County']
       county_name = county.delete('County').downcase
       county = county.slice(*SELECT_HEADERS)
-      county.transform_keys! {|k| "#{county_name}_#{k}"}
-      county
+      county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
+      {date: date['testDate']}.merge(county)
     end
-
-    row.unshift(date: date['testDate'])
-
-    row.reduce(&:merge!)
-  end
+  end.transpose
 
   region_10_table = Thamble.table(region_10_hospitalization)
   state_hospitalization_table = Thamble.table(state_hospitalization)
@@ -38,10 +34,14 @@ get '/' do
     headers: state_hospitalization_historic.first.keys,
     table: {id: "hospitalization-data"},
   })
-  test_results_table = Thamble.table(test_results.map(&:values), {
-    headers: test_results.first.keys,
-    table: {id: "test-results"},
-  })
+
+
+  test_results_tables = test_results.each_with_index.map do |results, i|
+    Thamble.table(results.map(&:values), {
+      headers: results.first.keys,
+      table: {id: "test-results-#{i}"},
+    })
+  end
 
   <<~HTML
     <style>
@@ -58,8 +58,15 @@ get '/' do
       }
     </style>
 
-    <h1>Test Results Data <span class="toggle-collapse" data-target="test-results">🗞</span></h1>
-    #{test_results_table}
+    <h1>Test Results Data</h1>
+    #{
+      test_results_tables.each_with_index.map do |results, i|
+         %Q{
+            <h2>#{SELECT_COUNTIES[i]}<span class="toggle-collapse" data-target="test-results-#{i}">🗞</span></h2>
+            #{results}
+          }
+      end.join("\n")
+    }
 
     <h1>Hospitalization Data</h1>
     <h2>Region 10</h2>
