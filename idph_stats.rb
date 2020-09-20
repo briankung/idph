@@ -56,7 +56,7 @@ get '/' do
       }
     </style>
 
-    <h1>Test Results Data</h1>
+    <h1>Test Results Data 🍺🦠🧪📝</h1>
     #{
       test_results_tables.each_with_index.map do |results, i|
          %Q{
@@ -66,7 +66,7 @@ get '/' do
       end.join("\n")
     }
 
-    <h1>Hospitalization Data</h1>
+    <h1>Hospitalization Data 🍺🦠🏥😷</h1>
     <h2>Region 10</h2>
     #{region_10_table}
 
