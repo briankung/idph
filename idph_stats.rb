@@ -6,9 +6,9 @@ require 'thamble'
 IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
 IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
 SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
-SELECT_HEADERS = %w{confirmed_cases deaths total_tested}.freeze
-SELECT_HOSPITALIZATION_DATA = %w{ICUCapacity ICUCovidPatients VentCapacity VentCovidPatients}.freeze
-SELECT_STATEWIDE_HOSPITALIZATION_DATA = %w{reportDate ICUBeds ICUInUseBedsCOVID VentilatorCapacity VentilatorInUseCOVID}.freeze
+SELECT_HEADERS = %w{total_tested confirmed_cases deaths}.freeze
+SELECT_HOSPITALIZATION_DATA = %w{ICUCovidPatients ICUCapacity VentCapacity VentCovidPatients}.freeze
+SELECT_STATEWIDE_HOSPITALIZATION_DATA = %w{reportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
 
 get '/' do
   hospital_data = HTTParty.get(IDPH_COVID_HOSPITAL_DATA).parsed_response
@@ -22,7 +22,7 @@ get '/' do
     date['values'].filter_map do |county|
       next unless SELECT_COUNTIES.include? county['County']
       county_name = county.delete('County').downcase
-      county = county.slice(*SELECT_HEADERS)
+      county = county_name == 'illinois' ? county.slice(*SELECT_HEADERS.rotate) : county.slice(*SELECT_HEADERS)
       county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
       {date: date['testDate']}.merge(county)
     end
