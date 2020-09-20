@@ -15,7 +15,6 @@ get '/' do
   test_data = HTTParty.get(IDPH_COVID_TEST_DATA).parsed_response
 
   region_10_hospitalization = hospital_data['regionValues'].find {|region| region['id'] == 10}.reject! {|k,_| k =~ /^(region|id)$/}
-  state_hospitalization = hospital_data['statewideValues'].slice(*SELECT_HOSPITALIZATION_DATA)
   state_hospitalization_historic = hospital_data['HospitalUtilizationResults'].map {_1.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
 
   test_results = test_data['historical_county']['values'].map do |date|
@@ -28,8 +27,7 @@ get '/' do
     end
   end.transpose
 
-  region_10_table = Thamble.table(region_10_hospitalization)
-  state_hospitalization_table = Thamble.table(state_hospitalization)
+  region_10_table = Thamble.table([region_10_hospitalization.values], {headers: region_10_hospitalization.keys})
   state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).reverse, {
     headers: state_hospitalization_historic.first.keys,
     table: {id: "hospitalization-data"},
@@ -71,9 +69,6 @@ get '/' do
     <h1>Hospitalization Data</h1>
     <h2>Region 10</h2>
     #{region_10_table}
-
-    <h2>Statewide Hospitalization Data</h2>
-    #{state_hospitalization_table}
 
     <h2>Historic Statewide Hospitalization Data <span class="toggle-collapse" data-target="hospitalization-data">🗞</span></h2>
     #{state_hospitalization_historic_table}
