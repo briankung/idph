@@ -3,11 +3,10 @@ require "sinatra/reloader" if development?
 require 'httparty'
 require 'thamble'
 
-IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
 IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
+IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
 SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
 SELECT_HEADERS = %i{total_tested confirmed_cases deaths}.freeze
-SELECT_HOSPITALIZATION_DATA = %i{ICUCovidPatients ICUCapacity VentCapacity VentCovidPatients}.freeze
 SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{reportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
 
 get '/' do
