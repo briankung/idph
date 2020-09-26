@@ -6,24 +6,24 @@ require 'thamble'
 IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
 IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
 SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
-SELECT_HEADERS = %w{total_tested confirmed_cases deaths}.freeze
-SELECT_HOSPITALIZATION_DATA = %w{ICUCovidPatients ICUCapacity VentCapacity VentCovidPatients}.freeze
-SELECT_STATEWIDE_HOSPITALIZATION_DATA = %w{reportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
+SELECT_HEADERS = %i{total_tested confirmed_cases deaths}.freeze
+SELECT_HOSPITALIZATION_DATA = %i{ICUCovidPatients ICUCapacity VentCapacity VentCovidPatients}.freeze
+SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{reportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
 
 get '/' do
-  hospital_data = HTTParty.get(IDPH_COVID_HOSPITAL_DATA).parsed_response
-  test_data = HTTParty.get(IDPH_COVID_TEST_DATA).parsed_response
+  hospital_data = JSON.parse(HTTParty.get(IDPH_COVID_HOSPITAL_DATA, format: :plain), symbolize_names: true)
+  test_data = JSON.parse(HTTParty.get(IDPH_COVID_TEST_DATA, format: :plain), symbolize_names: true)
 
-  region_10_hospitalization = hospital_data['regionValues'].find {|region| region['id'] == 10}.reject! {|k,_| k =~ /^(region|id)$/}
-  state_hospitalization_historic = hospital_data['HospitalUtilizationResults'].map {_1.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
+  region_10_hospitalization = hospital_data[:regionValues].find {|region| region[:id] == 10}.reject! {|k,_| k =~ /^(region|id)$/}
+  state_hospitalization_historic = hospital_data[:HospitalUtilizationResults].map {_1.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
 
-  test_results = test_data['historical_county']['values'].map do |date|
-    date['values'].filter_map do |county|
-      next unless SELECT_COUNTIES.include? county['County']
-      county_name = county.delete('County').downcase
+  test_results = test_data[:historical_county][:values].map do |date|
+    date[:values].filter_map do |county|
+      next unless SELECT_COUNTIES.include? county[:County]
+      county_name = county.delete(:County).downcase
       county = county_name == 'illinois' ? county.slice(*SELECT_HEADERS.rotate) : county.slice(*SELECT_HEADERS)
       county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
-      {date: date['testDate']}.merge(county)
+      {date: date[:testDate]}.merge(county)
     end
   end.transpose
 
