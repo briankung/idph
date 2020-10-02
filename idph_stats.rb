@@ -15,7 +15,7 @@ get '/' do
 
   case hospital_data
   in  {
-        regionValues: [*, {id: 10, region: _region, **region_10_hospitalization}, *],
+        regionValues: [*, {region: "10", **region_10_hospitalization}, *],
         HospitalUtilizationResults: state_hospitalization_historic
       }
     state_hospitalization_historic.map! {|d| d.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
