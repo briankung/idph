@@ -23,7 +23,7 @@ get '/' do
   end
 
   test_results = case test_data
-  in {historical_county: {values: values}}
+  in {historical_county: {values: values}, state_recovery_data: {values: state_recovery_data}}
     values.map do |date|
       date[:values].filter_map do |county|
         next unless SELECT_COUNTIES.include? county[:County]
@@ -53,6 +53,19 @@ get '/' do
     })
   end
 
+  STATE_RECOVERY_DATA_COLUMN_ORDER = %i{report_date sample_surveyed recovered_cases recovered_and_deceased_cases recovery_rate}
+
+  state_recovery_data.map! {Hash[sample_surveyed: nil].merge(_1).slice(*STATE_RECOVERY_DATA_COLUMN_ORDER)}
+
+  state_recovery_data.reverse! # date ascending order
+
+  state_recovery_table = Thamble.table(
+    state_recovery_data.map(&:values), {
+      headers: state_recovery_data.first.keys,
+      table: {id: "state-recovery-data"}
+    }
+  )
+
   <<~HTML
     <style>
       tr:nth-child(odd) {
@@ -77,6 +90,9 @@ get '/' do
           }
       end.join("\n")
     }
+
+    <h1>State Recovery Data <span class="toggle-collapse" data-target="state-recovery-data">🗞</span></h1>
+    #{state_recovery_table}
 
     <h1>Hospitalization Data 🍺🦠🏥😷</h1>
     <h2>Region 10</h2>
