@@ -36,6 +36,10 @@ get '/' do
   else
   end
 
+  test_results
+    .map!(&:reverse!) # sort in ascending date order...i.e. go into the future the further you scroll down
+    .map! {_1.last(14)} # only show the last 14 days' worth of data
+
   region_10_table = Thamble.table([region_10_hospitalization.values], {headers: region_10_hospitalization.keys})
   state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).reverse, {
     headers: state_hospitalization_historic.first.keys,
@@ -89,7 +93,7 @@ get '/' do
       [...document.querySelectorAll('.toggle-collapse')].forEach(toggle => {
         toggle.onclick = (e) => {
           const table = document.getElementById(toggle.dataset.target);
-          [...table.querySelectorAll('tbody tr:not(:first-child)')].forEach(toggleDisplay);
+          [...table.querySelectorAll('tbody tr:not(:last-child)')].forEach(toggleDisplay);
           e.preventDefault();
         };
 
