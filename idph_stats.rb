@@ -30,7 +30,7 @@ get '/' do
         county_name = county.delete(:County).downcase
         county = (county_name == 'illinois') ? county.slice(*SELECT_HEADERS.rotate) : county.slice(*SELECT_HEADERS)
         county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
-        {date: date[:testDate], **county}
+        county
       end
     end.transpose
   else
@@ -43,7 +43,7 @@ get '/' do
   })
 
   test_results_tables = test_results.each_with_index.map do |results, i|
-    Thamble.table(results.map(&:values), {
+    Thamble.table(results.map(&:values).reverse, {
       headers: results.first.keys,
       table: {id: "test-results-#{i}"},
     })
