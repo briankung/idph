@@ -2,12 +2,13 @@ require 'sinatra'
 require "sinatra/reloader" if development?
 require 'httparty'
 require 'thamble'
+# require 'pry'
 
-IDPH_COVID_HOSPITAL_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHospitalRegions.json?nocache=1".freeze
+IDPH_COVID_HOSPITAL_DATA = "https://idph.illinois.gov/DPHPublicInformation/api/COVID/GetHospitalizationResults".freeze
 IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
 SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
 SELECT_HEADERS = %i{total_tested confirmed_cases deaths}.freeze
-SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{reportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
+SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{ReportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
 
 get '/' do
   hospital_data = JSON.parse(HTTParty.get(IDPH_COVID_HOSPITAL_DATA, format: :plain), symbolize_names: true)
@@ -15,7 +16,7 @@ get '/' do
 
   case hospital_data
   in  {
-        regionValues: [*, {region: "10", **region_10_hospitalization}, *],
+        regionValues: [*, {id: 10, **region_10_hospitalization}, *],
         HospitalUtilizationResults: state_hospitalization_historic
       }
     state_hospitalization_historic.map! {|d| d.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
@@ -41,7 +42,7 @@ get '/' do
     .map! {_1.last(14)} # only show the last 14 days' worth of data
 
   region_10_table = Thamble.table([region_10_hospitalization.values], {headers: region_10_hospitalization.keys})
-  state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).reverse, {
+  state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).last(14), {
     headers: state_hospitalization_historic.first.keys,
     table: {id: "hospitalization-data"},
   })
