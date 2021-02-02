@@ -9,7 +9,7 @@ COUNTY_TEST_DATA = "https://idph.illinois.gov/DPHPublicInformation/api/COVID/Get
 SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
 SELECT_HEADERS = %i{tested confirmed_cases deaths}.freeze
 SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{ReportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
-DATE_FORMAT = "%M/%D/%Y"
+DATE_FORMAT = "%-m/%-d/%Y"
 
 get '/' do
   hospital_data = JSON.parse(HTTParty.get(IDPH_COVID_HOSPITAL_DATA, format: :plain), symbolize_names: true)
@@ -22,14 +22,16 @@ get '/' do
         regionValues: [*, {id: 10, **region_10_hospitalization}, *],
         HospitalUtilizationResults: state_hospitalization_historic
       }
-    state_hospitalization_historic.map! {|d| d.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA)}
+    state_hospitalization_historic.map! do |data|
+      data.slice(*SELECT_STATEWIDE_HOSPITALIZATION_DATA).tap {|d| d[:ReportDate] = Time.parse(d[:ReportDate]).strftime(DATE_FORMAT)}
+    end
   else
   end
 
   test_results = test_data.map do |values|
     values.map do |county|
       county_name = county.delete(:CountyName).downcase
-      date = county.delete(:reportDate)
+      date = county.delete(:reportDate).then {|d| Time.parse(d).strftime(DATE_FORMAT)}
       county = (county_name == 'illinois') ? county.slice(*SELECT_HEADERS.rotate) : county.slice(*SELECT_HEADERS)
       county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
       {date: date, **county}
