@@ -2,17 +2,20 @@ require 'sinatra'
 require "sinatra/reloader" if development?
 require 'httparty'
 require 'thamble'
-# require 'pry'
+require 'pry'
 
 IDPH_COVID_HOSPITAL_DATA = "https://idph.illinois.gov/DPHPublicInformation/api/COVID/GetHospitalizationResults".freeze
-IDPH_COVID_TEST_DATA = "https://www.dph.illinois.gov/sitefiles/COVIDHistoricalTestResults.json?nocache=1".freeze
+COUNTY_TEST_DATA = "https://idph.illinois.gov/DPHPublicInformation/api/COVID/GetCountyHistorical?countyName=".freeze
 SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
-SELECT_HEADERS = %i{total_tested confirmed_cases deaths}.freeze
+SELECT_HEADERS = %i{tested confirmed_cases deaths}.freeze
 SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{ReportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
+DATE_FORMAT = "%M/%D/%Y"
 
 get '/' do
   hospital_data = JSON.parse(HTTParty.get(IDPH_COVID_HOSPITAL_DATA, format: :plain), symbolize_names: true)
-  test_data = JSON.parse(HTTParty.get(IDPH_COVID_TEST_DATA, format: :plain), symbolize_names: true)
+  test_data = SELECT_COUNTIES.map do |county|
+    JSON.parse(HTTParty.get("#{COUNTY_TEST_DATA}#{county}", format: :plain), symbolize_names: true).fetch(:values)
+  end
 
   case hospital_data
   in  {
@@ -23,23 +26,17 @@ get '/' do
   else
   end
 
-  test_results = case test_data
-  in {historical_county: {values: values}} #, state_recovery_data: {values: state_recovery_data}}
-    values.map do |date|
-      date[:values].filter_map do |county|
-        next unless SELECT_COUNTIES.include? county[:County]
-        county_name = county.delete(:County).downcase
-        county = (county_name == 'illinois') ? county.slice(*SELECT_HEADERS.rotate) : county.slice(*SELECT_HEADERS)
-        county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
-        {date: date[:testDate], **county}
-      end
-    end.transpose
-  else
+  test_results = test_data.map do |values|
+    values.map do |county|
+      county_name = county.delete(:CountyName).downcase
+      date = county.delete(:reportDate)
+      county = (county_name == 'illinois') ? county.slice(*SELECT_HEADERS.rotate) : county.slice(*SELECT_HEADERS)
+      county.transform_keys! {|k| "#{county_name}_#{k}".to_sym}
+      {date: date, **county}
+    end
   end
 
-  test_results
-    .map!(&:reverse!) # sort in ascending date order...i.e. go into the future the further you scroll down
-    .map! {_1.last(14)} # only show the last 14 days' worth of data
+  test_results.map! {_1.last(14)} # only show the last 14 days' worth of data
 
   region_10_table = Thamble.table([region_10_hospitalization.values], {headers: region_10_hospitalization.keys})
   state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).last(14), {
@@ -55,17 +52,6 @@ get '/' do
   end
 
   STATE_RECOVERY_DATA_COLUMN_ORDER = %i{report_date sample_surveyed recovered_cases recovered_and_deceased_cases recovery_rate}
-
-  # state_recovery_data.map! {Hash[sample_surveyed: nil].merge(_1).slice(*STATE_RECOVERY_DATA_COLUMN_ORDER)}
-
-  # state_recovery_data.reverse! # date ascending order
-
-  # state_recovery_table = Thamble.table(
-  #   state_recovery_data.map(&:values), {
-  #     headers: state_recovery_data.first.keys,
-  #     table: {id: "state-recovery-data"}
-  #   }
-  # )
 
   <<~HTML
     <style>
