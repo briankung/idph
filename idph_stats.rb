@@ -41,7 +41,7 @@ get '/' do
   test_results.map! {_1.last(28)} # only show the last 28 days' worth of data
 
   region_10_table = Thamble.table([region_10_hospitalization.values], {headers: region_10_hospitalization.keys})
-  state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).last(14), {
+  state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).last(28), {
     headers: state_hospitalization_historic.first.keys,
     table: {id: "hospitalization-data"},
   })
