@@ -10,6 +10,7 @@ SELECT_COUNTIES = %w{Illinois Chicago Cook Lake}.freeze
 SELECT_HEADERS = %i{tested confirmed_cases deaths}.freeze
 SELECT_STATEWIDE_HOSPITALIZATION_DATA = %i{ReportDate ICUInUseBedsCOVID ICUBeds VentilatorInUseCOVID VentilatorCapacity}.freeze
 DATE_FORMAT = "%-m/%-d/%Y"
+BACKLOG_DURATION = ENV['BACKLOG_DURATION'].to_i
 
 get '/' do
   hospital_data = JSON.parse(HTTParty.get(IDPH_COVID_HOSPITAL_DATA, format: :plain), symbolize_names: true)
@@ -38,10 +39,10 @@ get '/' do
     end
   end
 
-  test_results.map! {_1.last(28)} # only show the last 28 days' worth of data
+  test_results.map! {_1.last(BACKLOG_DURATION)}
 
   region_10_table = Thamble.table([region_10_hospitalization.values], {headers: region_10_hospitalization.keys})
-  state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).last(28), {
+  state_hospitalization_historic_table = Thamble.table(state_hospitalization_historic.map(&:values).last(BACKLOG_DURATION), {
     headers: state_hospitalization_historic.first.keys,
     table: {id: "hospitalization-data"},
   })
